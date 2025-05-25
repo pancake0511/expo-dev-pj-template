@@ -1,6 +1,6 @@
 # AI メンターアプリ 技術スタック検証プロジェクト
 
-[React Native 公式](https://reactnative.dev/) ｜ [Expo 公式](https://docs.expo.dev/) ｜ [Firebase 公式](https://firebase.google.com/docs) ｜ [React Navigation](https://reactnavigation.org/)
+[React Native 公式](https://reactnative.dev/) ｜ [Expo 公式](https://docs.expo.dev/) ｜ [Firebase 公式](https://firebase.google.com/docs) ｜ [Expo Router](https://expo.github.io/router/)
 
 ---
 
@@ -18,40 +18,103 @@
 
 ---
 
-## ページ構成・ディレクトリ設計（例）
+## ページ構成・ディレクトリ設計
 
+本プロジェクトでは、**Expo Router** のファイルシステムベースルーティングを採用しており、`app` ディレクトリ内のファイルとディレクトリ構造がそのままルーティングパスにマッピングされます。これにより、シンプルかつ直感的な画面遷移の管理が可能です。
+
+```txt
+.
+├── README.md
+├── app # Expo Router のルートディレクトリ
+│   ├── (tabs) # タブナビゲーションのグループ（ルーティングパスには含まれない）
+│   │   ├── \_layout.tsx # (tabs) グループのレイアウト（タブバーの定義）
+│   │   ├── counter.tsx # /counter にルーティングされるタブスクリーン
+│   │   ├── guess-number.tsx # /guess-number にルーティングされるタブスクリーン
+│   │   ├── index.tsx # /(tabs) のデフォルト（最初のタブ）スクリーン
+│   │   ├── sample.tsx # /sample にルーティングされるタブスクリーン
+│   │   ├── tic-tac-toe.tsx # /tic-tac-toe にルーティングされるタブスクリーン
+│   │   └── two.tsx # /two にルーティングされるタブスクリーン
+│   ├── +html.tsx # Web ビルド時のカスタム HTML ファイル
+│   ├── +not-found.tsx # 404 ページ
+│   ├── \_layout.tsx # アプリ全体のレイアウト（ルートスタック）
+│   └── modal.tsx # /modal にルーティングされるモーダルスクリーン
+├── app.json # Expo の設定ファイル
+├── assets # アプリの画像やフォントなどのリソース
+│   ├── fonts
+│   │   └── SpaceMono-Regular.ttf
+│   └── images
+│       ├── adaptive-icon.png
+│       ├── favicon.png
+│       ├── icon.png
+│       └── splash-icon.png
+├── components # 汎用 UI コンポーネント、フックなど
+│   ├── EditScreenInfo.tsx
+│   ├── ExternalLink.tsx
+│   ├── GameButton.tsx # ゲームメニュー用のカスタムボタン
+│   ├── StyledText.tsx
+│   ├── Themed.tsx
+│   ├── tests
+│   │   └── StyledText-test.js
+│   ├── useClientOnlyValue.ts
+│   ├── useClientOnlyValue.web.ts
+│   ├── useColorScheme.ts
+│   └── useColorScheme.web.ts
+├── constants # アプリ全体で共通利用する定数
+│   └── Colors.ts
+├── dir_structure.txt
+├── expo-env.d.ts
+├── package-lock.json
+├── package.json # プロジェクトの依存関係とスクリプト
+├── tsconfig.json # TypeScript の設定ファイル
+└── utilCommands.md
 ```
 
-/my-app
-/src
-/screens # 各画面（ページ）コンポーネント
-HomeScreen.tsx
-ChatScreen.tsx
-ProfileScreen.tsx
-...
-/components # 汎用 UI コンポーネント
-ChatBubble.tsx
-Header.tsx
-...
-/hooks # カスタムフック
-/utils # ユーティリティ関数
-/firebase.ts # Firebase 初期化
-/navigation # 画面遷移設定
-AppNavigator.tsx
-App.tsx # エントリーポイント
-...
+### ルーティングに関する注意点
 
-```
+本プロジェクトでは、**`app.json` の `experiments.typedRoutes` を `false` に設定**しており、Expo Router のルーティングは従来の文字列ベースのパス指定で行われます。
 
--   **画面例**
-    -   HomeScreen: トップ・メニュー
-    -   ChatScreen: AI メンターとのチャット画面
-    -   ProfileScreen: ユーザー設定・プロフィール
-    -   （必要に応じて追加）
+-   **パスの指定方法の厳密な理解:**
+    `app/(tabs)/_layout.tsx` でタブとして定義されているスクリーンへの遷移は、`useRouter` フックで取得した `router` オブジェクトの `push` メソッドを使用します。この際、**括弧で囲まれたディレクトリ（例: `(tabs)`）はルーティングパスには含まれない** ため、ファイル名が直接ルートからのパスとして扱われます。
+
+    **例:**
+    `app/(tabs)/tic-tac-toe.tsx` へ遷移する場合、コードでは以下のように**ルートからの絶対パス**で指定します。
+
+    ```typescript
+    import { useRouter } from "expo-router";
+    import GameButton from "@/components/GameButton"; // GameButtonのインポート例
+
+    export default function GameMenuScreen() {
+        const router = useRouter();
+
+        return (
+            // ... (View, Textなどのコンポーネント)
+            <GameButton
+                title="三目並べ（Tic-Tac-Toe）"
+                onPress={() => router.push("/tic-tac-toe")} // 正しいパス指定
+            />
+            <GameButton
+                title="カウンターゲーム"
+                onPress={() => router.push("/counter")} // 正しいパス指定
+            />
+            <GameButton
+                title="数当てゲーム"
+                onPress={() => router.push("/guess-number")} // 正しいパス指定
+            />
+            // ...
+        );
+    }
+    ```
+
+-   **インテリセンスの制限と対策:**
+    `typedRoutes` が無効になっているため、`router.push()` の引数として渡す文字列リテラルに対して、**VS Code のインテリセンスがルーティングパスの候補を直接表示することはありません。** これは、TypeScript が動的な文字列パスを静的に解決できないことによるものです。
+    この制限は、`npx expo start --clear` によるキャッシュクリアで一時的に誤った推論が解消されるものの、根本的なパス補完は提供されません。タイプミスを防ぎ、コードの可読性を向上させるためには、ルーティングパスを `constants` ディレクトリなどで定数として定義し、それを利用することをお勧めします。
 
 ---
 
 ## 開発の進め方（推奨フロー）
+
+-   プロジェクトの環境セットアップ後、本リポジトリ PJ の main ブランチからサーバー起動 (npx expo start --web) 時にブラウザでアプリケーションが正しくレンダリングされ、基本的な動作が確認できれば初期セットアップは成功です。
+    ![`browser setup screen`](/assets/images/browser_first_screen.png)
 
 1. **要件・検証内容の明確化**
     - 例: チャット画面で Firebase と連携できるか、Expo で Push 通知が使えるか等

@@ -6,7 +6,6 @@
 │   │   ├── counter.tsx
 │   │   ├── guess-number.tsx
 │   │   ├── index.tsx
-│   │   ├── sample.tsx
 │   │   ├── tic-tac-toe.tsx
 │   │   └── two.tsx
 │   ├── +html.tsx
@@ -37,10 +36,9 @@
 ├── constants
 │   └── Colors.ts
 ├── dir_structure.txt
-├── expo-env.d.ts
 ├── package-lock.json
 ├── package.json
 ├── tsconfig.json
 └── utilCommands.md
 
-9 directories, 35 files
+9 directories, 33 files
